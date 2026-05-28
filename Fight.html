@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>街頭魂：賽博格鬥魂 (Cyber Spirit Fighting)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0c10;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            max-height: 500px;
+            background: linear-gradient(180deg, #1f2833 0%, #0b0c10 100%);
+            border: 4px solid #45f3ff;
+            box-shadow: 0 0 20px #45f3ff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* 頂部血條與資訊 */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(0,0,0,0.6);
+            border-bottom: 2px solid #1f2833;
+        }
+        .character-info {
+            width: 45%;
+        }
+        .name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #45f3ff;
+            text-shadow: 0 0 5px #45f3ff;
+            margin-bottom: 5px;
+        }
+        .hp-bar-bg {
+            width: 100%;
+            height: 15px;
+            background-color: #555;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .hp-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0055, #ff5500);
+            transition: width 0.3s ease;
+        }
+        #vs {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff0055;
+            align-self: center;
+            text-shadow: 0 0 10px #ff0055;
+        }
+        /* 戰鬥文字動態形容區 */
+        #battle-arena {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+        #action-description {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #66fcf1;
+            text-shadow: 0 0 8px rgba(102, 252, 241, 0.5);
+            min-height: 100px;
+            max-width: 90%;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1f2833;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 角色選擇介面 */
+        #char-select-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.95);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .screen-title {
+            font-size: 24px;
+            color: #45f3ff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #45f3ff;
+        }
+        .char-grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 600px;
+        }
+        .char-card {
+            background: #1f2833;
+            border: 2px solid #c5a059;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100px;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .char-card:hover, .char-card.selected {
+            background: #45f3ff;
+            color: #0b0c10;
+            box-shadow: 0 0 10px #45f3ff;
+            border-color: #fff;
+        }
+        #start-btn {
+            margin-top: 25px;
+            padding: 10px 30px;
+            font-size: 18px;
+            background: #ff0055;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #ff0055;
+            font-weight: bold;
+        }
+        /* 控制操作區 */
+        #controls {
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #1f2833;
+        }
+        .keyboard-hint {
+            font-size: 12px;
+            color: #888;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .game-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: 2px solid #45f3ff;
+            background: #1f2833;
+            color: #45f3ff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 5px rgba(69, 243, 255, 0.3);
+        }
+        .game-btn:active {
+            background: #45f3ff;
+            color: #0b0c10;
+            box-shadow: 0 0 15px #45f3ff;
+        }
+        .game-btn.ult {
+            border-color: #ff0055;
+            color: #ff0055;
+            box-shadow: 0 0 5px rgba(255, 0, 85, 0.3);
+        }
+        .game-btn.ult:active {
+            background: #ff0055;
+            color: #fff;
+            box-shadow: 0 0 15px #ff0055;
+        }
+        .btn-sub {
+            font-size: 10px;
+            opacity: 0.6;
+        }
+        /* 行動版與電腦版自動適應隱藏 */
+        @media (min-width: 768px) {
+            .mobile-only { display: none; }
+        }
+        @media (max-width: 767px) {
+            .desktop-only { display: none; }
+            .game-btn { width: 55px; height: 55px; font-size: 14px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 角色選擇畫面 -->
+        <div id="char-select-screen">
+            <div class="screen-title">請選擇您的格鬥家</div>
+            <div class="char-grid" id="char-grid"></div>
+            <button id="start-btn">進入街頭對決</button>
+        </div>
+
+        <!-- 戰鬥 HUD 生物血條 -->
+        <div id="hud">
+            <div class="character-info">
+                <div class="name" id="p1-name">玩家</div>
+                <div class="hp-bar-bg"><div class="hp-bar" id="p1-hp"></div></div>
+            </div>
+            <div id="vs">VS</div>
+            <div class="character-info" style="text-align: right;">
+                <div class="name" id="p2-name">對手</div>
+                <div class="hp-bar-bg"><div class="hp-bar" id="p2-hp"></div></div>
+            </div>
+        </div>
+
+        <!-- 戰鬥動態形容主舞台 -->
+        <div id="battle-arena">
+            <div id="action-description">賽博街頭的霓虹燈閃爍...請按下方的攻擊鍵或鍵盤對應鍵發動攻勢！</div>
+        </div>
+
+        <!-- 操控介面區 -->
+        <div id="controls">
+            <div class="desktop-only keyboard-hint">
+                操作提示：<br>
+                [ J ] 鍵：招式一<br>
+                [ K ] 鍵：招式二<br>
+                [ L ] 鍵：必殺技
+            </div>
+            <div class="mobile-only keyboard-hint">
+                虛擬控制端已啟動
+            </div>
+            <div class="btn-group">
+                <button class="game-btn" id="btn-skill1">
+                    <span>招式一</span>
+                    <span class="btn-sub desktop-only">(J)</span>
+                </button>
+                <button class="game-btn" id="btn-skill2">
+                    <span>招式二</span>
+                    <span class="btn-sub desktop-only">(K)</span>
+                </button>
+                <button class="game-btn ult" id="btn-ult">
+                    <span>必殺技</span>
+                    <span class="btn-sub desktop-only">(L)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 角色資料庫
+        const characters = {
+            yu: {
+                name: "優 (Yu)",
+                skills: {
+                    s1: "【瞬步．斷空】他的身體因為速度太快而原地「憑空消失」，在空氣中拉出一道短暫的殘影。當他再次現身時，已經貼在對手的死角，一記單純憑藉極致速度與怪力撞擊的重拳直接轟在對手腹部！",
+                    s2: "【怪力崩擊】沒有任何蓄力動作，優在極近距離下右手如同閃電般伸出，死死扣住對手的面門，全身精壯肌肉瞬間緊繃，單手將對手整個人提離地面後，像揮舞稻草人一樣猛烈地往地面反手砸下去！",
+                    ult: "【神速連擊】優雙眼微瞇，腳步一踏化為十幾道在戰場上交錯的黑色殘影。對手瞬間遭到來自四面八方、肉眼看不清的連續重拳毆打！最後所有殘影合而為一，優踩碎地面一記正拳全力轟出，強大的衝擊波直接將對手擊飛到版邊！"
+                }
+            },
+            leo: {
+                name: "里奧 (Leo)",
+                skills: {
+                    s1: "【高壓爆裂刺拳】里奧擺出拳擊站姿，雙拳機械義體後方排氣孔同時噴射出耀眼的藍色粒子火花，利用高壓蒸汽的推進力，讓他的雙拳在極短時間內向前連續突刺，打出帶有音爆聲的拳影！",
+                    s2: "【重核上勾拳】里奧伏低身軀，右手義體核心部分開始瘋狂旋轉並發出過熱的橘紅光芒。隨後他由下而上猛烈揮拳，積蓄的液壓能量瞬間爆發，將對手連人帶特效一起打向高空！",
+                    ult: "【極速過載拳】里奧雙手義體進入「完全過載」狀態，全身燈條轉為血紅色。他一邊向前推進，雙拳一邊歇斯底里地瘋狂左右連打，在空氣中留下紅色能量殘痕，最後雙拳合十，轟出一道將對手吞噬的扇形破壞衝擊波！"
+                }
+            },
+            sakura: {
+                name: "櫻 (Sakura)",
+                skills: {
+                    s1: "【重力一本背負投】櫻抓住對手衣領與手臂的瞬間，手腕上的磁能環亮起刺眼藍光。對手身體周圍的重力瞬間暴增數倍變得沉重無比，櫻順勢一記乾淨俐落的過肩摔，將對手像隕石一樣狠狠砸進地面！",
+                    s2: "【反物質巴投】面對衝過來的對手，櫻不退反進並順勢躺下、雙腳蹬住對手腹部。在接觸的剎那，磁能環產生的反重力屏障直接抵消對手重量，讓她輕巧地將對方往後遠遠拋飛出去！",
+                    ult: "【地獄量子引力落】櫻拔地而起跳至半空，手腕磁能環射出三條藍色光纖牽引繩鎖定對手並強行拉向空中。隨後櫻在空中反身將對手死死抱住，兩人的磁能環逆向過載，化作一顆深藍色重力彗星垂直砸向地面！"
+                }
+            },
+            ken: {
+                name: "健 (Ken)",
+                skills: {
+                    s1: "【離子正拳突】健沉穩地扎下馬步，右手蓄力後筆直一刺。隨著拳頭擊出，他體內轉換的能量透過空氣介質，在拳頭前方凝聚並發射出一枚散發著劈啪電聲的藍白色等離子電漿球轟向對手！",
+                    s2: "【微型渦流迴旋踢】健以單腳為軸心，改裝過的合金腿部關節發出機械高速運轉的低鳴。他原地使出大範圍的 360 度後旋踢，雙腿高速旋轉產生的電子風暴化作粒子旋風將對手捲入！",
+                    ult: "【千裂光子腳】健單腳獨立，另一隻腳化為無數道金色的殘影，隨著密不透風的連續踢擊爆發出無數光子火花。最後一腳他將能量集中於腳尖全力重踢，化作一道貫穿全螢幕的金黃色雷射光束！"
+                }
+            },
+            long: {
+                name: "龍 (Long)",
+                skills: {
+                    s1: "【生化猛龍出海】龍雙手在胸前畫圓，體內生物晶片將能量導向雙掌前推。背後懸浮的機械神龍隨之吐出一團綠色生化能量，化作一條咆哮的機械龍首氣功波，貼著地面向前爆射飛行！",
+                    s2: "【全息神龍擺尾】龍瀟灑地轉身使出旋風踢。在長袍飄動的瞬間，背後的微型無人機在萬分之一秒內於他的腳後跟處精準投影出一段巨大的綠色全息龍尾，隨著踢擊軌跡直接橫掃對手！",
+                    ult: "【萬核朝宗】龍雙手合十結印，戰場地面的電子線路開始超載發光。隨著他單手猛地朝天一指，無數條綠色的全息機械龍影從對手腳底下的地表破土衝出、直衝雲霄，對敵人進行多段的吞噬與撕裂！"
+                }
+            }
+        };
+
+        let playerChar = null;
+        let enemyChar = null;
+        let playerHP = 100;
+        let enemyHP = 100;
+        let isGameOver = false;
+
+        // 初始化角色選擇格
+        const charGrid = document.getElementById('char-grid');
+        Object.keys(characters).forEach((key, index) => {
+            const card = document.createElement('div');
+            card.className = 'char-card';
+            if(index === 0) card.classList.add('selected'); // 預選第一個（優）
+            card.textContent = characters[key].name.split(" ")[0];
+            card.dataset.id = key;
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                playerChar = characters[key];
+            });
+            charGrid.appendChild(card);
+        });
+
+        // 預設玩家選擇
+        playerChar = characters['yu'];
+
+        // 開始遊戲按鈕
+        document.getElementById('start-btn').addEventListener('click', () => {
+            // 隨機選擇對手（不能跟玩家重複，若重複就換一個）
+            const keys = Object.keys(characters);
+            let enemyKey = keys[Math.floor(Math.random() * keys.length)];
+            if (characters[enemyKey].name === playerChar.name) {
+                enemyKey = keys.find(k => characters[k].name !== playerChar.name) || keys[0];
+            }
+            enemyChar = characters[enemyKey];
+
+            // 更新介面
+            document.getElementById('p1-name').textContent = playerChar.name;
+            document.getElementById('p2-name').textContent = enemyChar.name;
+            document.getElementById('char-select-screen').style.display = 'none';
+            
+            resetGame();
+        });
+
+        function resetGame() {
+            playerHP = 100;
+            enemyHP = 100;
+            isGameOver = false;
+            updateHPWidgets();
+            document.getElementById('action-description').innerHTML = `比賽開始！<br><b>${playerChar.name}</b> VS <b>${enemyChar.name}</b><br>請使用下方按鈕或鍵盤 [J, K, L] 發動攻擊！`;
+        }
+
+        function updateHPWidgets() {
+            document.getElementById('p1-hp').style.width = playerHP + '%';
+            document.getElementById('p2-hp').style.width = enemyHP + '%';
+        }
+
+        // 核心戰鬥邏輯（回合制演繹）
+        function p1Attack(skillType) {
+            if (isGameOver) return;
+
+            let damage = 0;
+            let text = "";
+
+            if (skillType === 's1') {
+                damage = Math.floor(Math.random() * 8) + 8; // 8-15 傷害
+                text = playerChar.skills.s1;
+            } else if (skillType === 's2') {
+                damage = Math.floor(Math.random() * 12) + 12; // 12-23 傷害
+                text = playerChar.skills.s2;
+            } else if (skillType === 'ult') {
+                damage = Math.floor(Math.random() * 20) + 25; // 25-45 傷害
+                text = playerChar.skills.ult;
+            }
+
+            enemyHP -= damage;
+            if (enemyHP < 0) enemyHP = 0;
+            updateHPWidgets();
+
+            let resultText = `<b>【玩家回合】</b><br>${text}<br><span style="color:#ff5500;">造成了 ${damage} 點傷害！</span>`;
+
+            if (enemyHP <= 0) {
+                resultText += `<br><br><span style="color:#45f3ff; font-size:22px; font-weight:bold;">K.O.! 勝利者：${playerChar.name}！</span>`;
+                isGameOver = true;
+                document.getElementById('action-description').innerHTML = resultText;
+                showRestartOption();
+                return;
+            }
+
+            document.getElementById('action-description').innerHTML = resultText;
+
+            // 停頓一下換對手反擊
+            setTimeout(enemyCounterAttack, 2200);
+        }
+
+        function enemyCounterAttack() {
+            if (isGameOver) return;
+
+            const skills = ['s1', 's2', 'ult'];
+            const randomSkill = skills[Math.floor(Math.random() * skills.length)];
+            let damage = 0;
+            let text = "";
+
+            if (randomSkill === 's1') {
+                damage = Math.floor(Math.random() * 8) + 6;
+                text = enemyChar.skills.s1;
+            } else if (randomSkill === 's2') {
+                damage = Math.floor(Math.random() * 10) + 10;
+                text = enemyChar.skills.s2;
+            } else if (randomSkill === 'ult') {
+                damage = Math.floor(Math.random() * 15) + 20;
+                text = enemyChar.skills.ult;
+            }
+
+            playerHP -= damage;
+            if (playerHP < 0) playerHP = 0;
+            updateHPWidgets();
+
+            let resultText = `<b>【對手回合】</b><br>${text}<br><span style="color:#ff0055;">玩家受到了 ${damage} 點傷害！</span>`;
+
+            if (playerHP <= 0) {
+                resultText += `<br><br><span style="color:#ff0055; font-size:22px; font-weight:bold;">K.O.! 您被 ${enemyChar.name} 擊敗了...</span>`;
+                isGameOver = true;
+                document.getElementById('action-description').innerHTML = resultText;
+                showRestartOption();
+                return;
+            }
+
+            document.getElementById('action-description').innerHTML = resultText;
+        }
+
+        function showRestartOption() {
+            setTimeout(() => {
+                if(confirm("對局結束！要重新回到角色選擇畫面嗎？")) {
+                    document.getElementById('char-select-screen').style.display = 'flex';
+                }
+            }, 1500);
+        }
+
+        // 綁定按鈕事件 (手機/滑鼠點擊)
+        document.getElementById('btn-skill1').addEventListener('click', () => p1Attack('s1'));
+        document.getElementById('btn-skill2').addEventListener('click', () => p1Attack('s2'));
+        document.getElementById('btn-ult').addEventListener('click', () => p1Attack('ult'));
+
+        // 綁定鍵盤事件 (電腦版)
+        document.addEventListener('keydown', (e) => {
+            if (isGameOver) return;
+            if (e.key === 'j' || e.key === 'J') {
+                p1Attack('s1');
+            } else if (e.key === 'k' || e.key === 'K') {
+                p1Attack('s2');
+            } else if (e.key === 'l' || e.key === 'L') {
+                p1Attack('ult');
+            }
+        });
+    </script>
+</body>
+</html>
