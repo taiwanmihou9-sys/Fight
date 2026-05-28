@@ -2,474 +2,1527 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>街頭魂：賽博格鬥魂 (Cyber Spirit Fighting)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D 格鬥遊戲 - 1v1 三戰兩勝</title>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --gold: #e2b04a;
+            --text: #e0d8c8;
         }
-        body {
+
+        * {
             margin: 0;
             padding: 0;
-            background-color: #0b0c10;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #fff;
-            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            height: 100vh;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-y: auto;
+            padding: 10px;
         }
-        #game-container {
+
+        .game-wrapper {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 80px rgba(226, 176, 74, 0.08);
+            border: 2px solid #2a2a4a;
+            max-width: 960px;
             width: 100%;
-            max-width: 800px;
-            height: 100%;
-            max-height: 500px;
-            background: linear-gradient(180deg, #1f2833 0%, #0b0c10 100%);
-            border: 4px solid #45f3ff;
-            box-shadow: 0 0 20px #45f3ff;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
-        /* 頂部血條與資訊 */
-        #hud {
+
+        .game-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .game-header h1 {
+            color: var(--gold);
+            font-size: 1.4em;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(226, 176, 74, 0.5);
+            white-space: nowrap;
+        }
+        .round-indicator {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .round-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            background: #222;
+            transition: all 0.3s;
+        }
+        .round-dot.won {
+            background: #e2b04a;
+            border-color: #e2b04a;
+            box-shadow: 0 0 10px rgba(226, 176, 74, 0.7);
+        }
+        .round-dot.lost {
+            background: #c0392b;
+            border-color: #c0392b;
+            box-shadow: 0 0 8px rgba(192, 57, 43, 0.6);
+        }
+        .vs-text {
+            color: #aaa;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin: 0 4px;
+        }
+
+        canvas {
+            display: block;
+            border-radius: 8px;
+            width: 100%;
+            height: auto;
+            background: #0a0a18;
+            border: 1px solid #333;
+            cursor: default;
+        }
+
+        .info-bar {
             display: flex;
             justify-content: space-between;
-            padding: 15px;
-            background: rgba(0,0,0,0.6);
-            border-bottom: 2px solid #1f2833;
-        }
-        .character-info {
-            width: 45%;
-        }
-        .name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #45f3ff;
-            text-shadow: 0 0 5px #45f3ff;
-            margin-bottom: 5px;
-        }
-        .hp-bar-bg {
-            width: 100%;
-            height: 15px;
-            background-color: #555;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .hp-bar {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #ff0055, #ff5500);
-            transition: width 0.3s ease;
-        }
-        #vs {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff0055;
-            align-self: center;
-            text-shadow: 0 0 10px #ff0055;
-        }
-        /* 戰鬥文字動態形容區 */
-        #battle-arena {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
-        }
-        #action-description {
-            font-size: 18px;
-            line-height: 1.6;
-            color: #66fcf1;
-            text-shadow: 0 0 8px rgba(102, 252, 241, 0.5);
-            min-height: 100px;
-            max-width: 90%;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #1f2833;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        /* 角色選擇介面 */
-        #char-select-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 12, 16, 0.95);
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .screen-title {
-            font-size: 24px;
-            color: #45f3ff;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px #45f3ff;
-        }
-        .char-grid {
-            display: flex;
-            gap: 10px;
+            margin-top: 10px;
             flex-wrap: wrap;
-            justify-content: center;
-            max-width: 600px;
+            gap: 10px;
+            font-size: 0.85em;
+            color: #aaa;
         }
-        .char-card {
-            background: #1f2833;
-            border: 2px solid #c5a059;
-            padding: 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100px;
-            text-align: center;
+        .info-bar .controls {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .info-bar .controls div {
+            background: #1a1a30;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .info-bar .controls strong {
+            color: var(--gold);
+        }
+        .info-bar .mode-hint {
+            color: #e2b04a;
             font-weight: bold;
+            cursor: pointer;
+            padding: 6px 12px;
+            background: #1a1a30;
+            border-radius: 6px;
+            border: 1px solid #444;
             transition: all 0.2s;
         }
-        .char-card:hover, .char-card.selected {
-            background: #45f3ff;
-            color: #0b0c10;
-            box-shadow: 0 0 10px #45f3ff;
-            border-color: #fff;
+        .info-bar .mode-hint:hover {
+            background: #2a2a40;
+            border-color: #e2b04a;
         }
-        #start-btn {
-            margin-top: 25px;
-            padding: 10px 30px;
-            font-size: 18px;
-            background: #ff0055;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            box-shadow: 0 0 10px #ff0055;
-            font-weight: bold;
-        }
-        /* 控制操作區 */
-        #controls {
-            background: rgba(0,0,0,0.8);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 2px solid #1f2833;
-        }
-        .keyboard-hint {
-            font-size: 12px;
-            color: #888;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-        .game-btn {
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            border: 2px solid #45f3ff;
-            background: #1f2833;
-            color: #45f3ff;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 5px rgba(69, 243, 255, 0.3);
-        }
-        .game-btn:active {
-            background: #45f3ff;
-            color: #0b0c10;
-            box-shadow: 0 0 15px #45f3ff;
-        }
-        .game-btn.ult {
-            border-color: #ff0055;
-            color: #ff0055;
-            box-shadow: 0 0 5px rgba(255, 0, 85, 0.3);
-        }
-        .game-btn.ult:active {
-            background: #ff0055;
-            color: #fff;
-            box-shadow: 0 0 15px #ff0055;
-        }
-        .btn-sub {
-            font-size: 10px;
-            opacity: 0.6;
-        }
-        /* 行動版與電腦版自動適應隱藏 */
-        @media (min-width: 768px) {
-            .mobile-only { display: none; }
-        }
-        @media (max-width: 767px) {
-            .desktop-only { display: none; }
-            .game-btn { width: 55px; height: 55px; font-size: 14px;}
+
+        @media (max-width: 700px) {
+            .game-header h1 {
+                font-size: 1.1em;
+            }
+            .info-bar {
+                font-size: 0.7em;
+            }
+            .info-bar .controls {
+                gap: 6px;
+            }
+            .info-bar .controls div {
+                padding: 4px 8px;
+            }
         }
     </style>
 </head>
 <body>
-
-    <div id="game-container">
-        <!-- 角色選擇畫面 -->
-        <div id="char-select-screen">
-            <div class="screen-title">請選擇您的格鬥家</div>
-            <div class="char-grid" id="char-grid"></div>
-            <button id="start-btn">進入街頭對決</button>
-        </div>
-
-        <!-- 戰鬥 HUD 生物血條 -->
-        <div id="hud">
-            <div class="character-info">
-                <div class="name" id="p1-name">玩家</div>
-                <div class="hp-bar-bg"><div class="hp-bar" id="p1-hp"></div></div>
-            </div>
-            <div id="vs">VS</div>
-            <div class="character-info" style="text-align: right;">
-                <div class="name" id="p2-name">對手</div>
-                <div class="hp-bar-bg"><div class="hp-bar" id="p2-hp"></div></div>
+    <div class="game-wrapper">
+        <div class="game-header">
+            <h1>⚔ 格鬥競技 ⚔</h1>
+            <div class="round-indicator" id="roundIndicator">
+                <span style="color:#aaa;font-size:0.8em;">P1</span>
+                <div class="round-dot" id="p1r1"></div>
+                <div class="round-dot" id="p1r2"></div>
+                <span class="vs-text">VS</span>
+                <div class="round-dot" id="p2r1"></div>
+                <div class="round-dot" id="p2r2"></div>
+                <span style="color:#aaa;font-size:0.8em;">P2</span>
             </div>
         </div>
-
-        <!-- 戰鬥動態形容主舞台 -->
-        <div id="battle-arena">
-            <div id="action-description">賽博街頭的霓虹燈閃爍...請按下方的攻擊鍵或鍵盤對應鍵發動攻勢！</div>
-        </div>
-
-        <!-- 操控介面區 -->
-        <div id="controls">
-            <div class="desktop-only keyboard-hint">
-                操作提示：<br>
-                [ J ] 鍵：招式一<br>
-                [ K ] 鍵：招式二<br>
-                [ L ] 鍵：必殺技
+        <canvas id="gameCanvas"></canvas>
+        <div class="info-bar">
+            <div class="controls">
+                <div><strong>P1</strong> WASD移動 | J攻擊 | K技能 | L必殺</div>
+                <div><strong>P2</strong> ↑↓←→移動 | 1攻擊 | 2技能 | 3必殺</div>
             </div>
-            <div class="mobile-only keyboard-hint">
-                虛擬控制端已啟動
-            </div>
-            <div class="btn-group">
-                <button class="game-btn" id="btn-skill1">
-                    <span>招式一</span>
-                    <span class="btn-sub desktop-only">(J)</span>
-                </button>
-                <button class="game-btn" id="btn-skill2">
-                    <span>招式二</span>
-                    <span class="btn-sub desktop-only">(K)</span>
-                </button>
-                <button class="game-btn ult" id="btn-ult">
-                    <span>必殺技</span>
-                    <span class="btn-sub desktop-only">(L)</span>
-                </button>
-            </div>
+            <div class="mode-hint" id="modeToggle" title="點擊切換模式">🆚 雙人對戰模式</div>
         </div>
     </div>
 
     <script>
-        // 角色資料庫
-        const characters = {
-            yu: {
-                name: "優 (Yu)",
-                skills: {
-                    s1: "【瞬步．斷空】他的身體因為速度太快而原地「憑空消失」，在空氣中拉出一道短暫的殘影。當他再次現身時，已經貼在對手的死角，一記單純憑藉極致速度與怪力撞擊的重拳直接轟在對手腹部！",
-                    s2: "【怪力崩擊】沒有任何蓄力動作，優在極近距離下右手如同閃電般伸出，死死扣住對手的面門，全身精壯肌肉瞬間緊繃，單手將對手整個人提離地面後，像揮舞稻草人一樣猛烈地往地面反手砸下去！",
-                    ult: "【神速連擊】優雙眼微瞇，腳步一踏化為十幾道在戰場上交錯的黑色殘影。對手瞬間遭到來自四面八方、肉眼看不清的連續重拳毆打！最後所有殘影合而為一，優踩碎地面一記正拳全力轟出，強大的衝擊波直接將對手擊飛到版邊！"
-                }
-            },
-            leo: {
-                name: "里奧 (Leo)",
-                skills: {
-                    s1: "【高壓爆裂刺拳】里奧擺出拳擊站姿，雙拳機械義體後方排氣孔同時噴射出耀眼的藍色粒子火花，利用高壓蒸汽的推進力，讓他的雙拳在極短時間內向前連續突刺，打出帶有音爆聲的拳影！",
-                    s2: "【重核上勾拳】里奧伏低身軀，右手義體核心部分開始瘋狂旋轉並發出過熱的橘紅光芒。隨後他由下而上猛烈揮拳，積蓄的液壓能量瞬間爆發，將對手連人帶特效一起打向高空！",
-                    ult: "【極速過載拳】里奧雙手義體進入「完全過載」狀態，全身燈條轉為血紅色。他一邊向前推進，雙拳一邊歇斯底里地瘋狂左右連打，在空氣中留下紅色能量殘痕，最後雙拳合十，轟出一道將對手吞噬的扇形破壞衝擊波！"
-                }
-            },
-            sakura: {
-                name: "櫻 (Sakura)",
-                skills: {
-                    s1: "【重力一本背負投】櫻抓住對手衣領與手臂的瞬間，手腕上的磁能環亮起刺眼藍光。對手身體周圍的重力瞬間暴增數倍變得沉重無比，櫻順勢一記乾淨俐落的過肩摔，將對手像隕石一樣狠狠砸進地面！",
-                    s2: "【反物質巴投】面對衝過來的對手，櫻不退反進並順勢躺下、雙腳蹬住對手腹部。在接觸的剎那，磁能環產生的反重力屏障直接抵消對手重量，讓她輕巧地將對方往後遠遠拋飛出去！",
-                    ult: "【地獄量子引力落】櫻拔地而起跳至半空，手腕磁能環射出三條藍色光纖牽引繩鎖定對手並強行拉向空中。隨後櫻在空中反身將對手死死抱住，兩人的磁能環逆向過載，化作一顆深藍色重力彗星垂直砸向地面！"
-                }
-            },
-            ken: {
-                name: "健 (Ken)",
-                skills: {
-                    s1: "【離子正拳突】健沉穩地扎下馬步，右手蓄力後筆直一刺。隨著拳頭擊出，他體內轉換的能量透過空氣介質，在拳頭前方凝聚並發射出一枚散發著劈啪電聲的藍白色等離子電漿球轟向對手！",
-                    s2: "【微型渦流迴旋踢】健以單腳為軸心，改裝過的合金腿部關節發出機械高速運轉的低鳴。他原地使出大範圍的 360 度後旋踢，雙腿高速旋轉產生的電子風暴化作粒子旋風將對手捲入！",
-                    ult: "【千裂光子腳】健單腳獨立，另一隻腳化為無數道金色的殘影，隨著密不透風的連續踢擊爆發出無數光子火花。最後一腳他將能量集中於腳尖全力重踢，化作一道貫穿全螢幕的金黃色雷射光束！"
-                }
-            },
-            long: {
-                name: "龍 (Long)",
-                skills: {
-                    s1: "【生化猛龍出海】龍雙手在胸前畫圓，體內生物晶片將能量導向雙掌前推。背後懸浮的機械神龍隨之吐出一團綠色生化能量，化作一條咆哮的機械龍首氣功波，貼著地面向前爆射飛行！",
-                    s2: "【全息神龍擺尾】龍瀟灑地轉身使出旋風踢。在長袍飄動的瞬間，背後的微型無人機在萬分之一秒內於他的腳後跟處精準投影出一段巨大的綠色全息龍尾，隨著踢擊軌跡直接橫掃對手！",
-                    ult: "【萬核朝宗】龍雙手合十結印，戰場地面的電子線路開始超載發光。隨著他單手猛地朝天一指，無數條綠色的全息機械龍影從對手腳底下的地表破土衝出、直衝雲霄，對敵人進行多段的吞噬與撕裂！"
-                }
-            }
-        };
+        (function() {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
 
-        let playerChar = null;
-        let enemyChar = null;
-        let playerHP = 100;
-        let enemyHP = 100;
-        let isGameOver = false;
+            // --- Canvas 尺寸 ---
+            const W = 920;
+            const H = 500;
+            canvas.width = W;
+            canvas.height = H;
 
-        // 初始化角色選擇格
-        const charGrid = document.getElementById('char-grid');
-        Object.keys(characters).forEach((key, index) => {
-            const card = document.createElement('div');
-            card.className = 'char-card';
-            if(index === 0) card.classList.add('selected'); // 預選第一個（優）
-            card.textContent = characters[key].name.split(" ")[0];
-            card.dataset.id = key;
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                playerChar = characters[key];
+            // --- 遊戲狀態 ---
+            const STATE = {
+                SELECT: 'select',
+                FIGHT: 'fight',
+                ROUND_END: 'roundEnd',
+                MATCH_END: 'matchEnd',
+            };
+
+            let gameState = STATE.SELECT;
+            let p1Selection = -1;
+            let p2Selection = -1;
+            let isVsCPU = true; // 預設單人vs電腦
+            let roundNumber = 1;
+            let p1RoundWins = 0;
+            let p2RoundWins = 0;
+            let roundEndTimer = 0;
+            let matchEndTimer = 0;
+            let roundWinner = null; // 'p1' | 'p2' | null
+            let matchWinner = null;
+            let roundStartCountdown = 0;
+            let shakeAmount = 0;
+            let globalSlowMo = 0;
+
+            // --- 角色定義 ---
+            const CHARACTERS = [
+                { name: '優 (Yu)', color: '#2c2c2c', accent: '#e8e8e8', desc: '瞬步·神速怪力', skillName: '瞬步·斷空',
+                    ultimateName: '神速連擊' },
+                { name: '里奧 (Leo)', color: '#4a4a5a', accent: '#ff4444', desc: '高壓液壓義體', skillName: '高壓爆裂刺拳',
+                    ultimateName: '極速過載拳' },
+                { name: '櫻 (Sakura)', color: '#1a3a5c', accent: '#4dc9f6', desc: '重力磁能柔道', skillName: '重力一本背負投',
+                    ultimateName: '地獄量子引力落' },
+                { name: '健 (Ken)', color: '#f5f0e8', accent: '#ffd700', desc: '等離子空手道', skillName: '離子正拳突',
+                    ultimateName: '千裂光子腳' },
+                { name: '龍 (Long)', color: '#8b1a1a', accent: '#00ff88', desc: '全息機械神龍', skillName: '生化猛龍出海',
+                    ultimateName: '萬核朝宗' },
+            ];
+
+            // --- 輸入處理 ---
+            const keys = {};
+            window.addEventListener('keydown', e => {
+                keys[e.key.toLowerCase()] = true;
+                keys[e.code] = true;
+                e.preventDefault();
             });
-            charGrid.appendChild(card);
-        });
+            window.addEventListener('keyup', e => {
+                keys[e.key.toLowerCase()] = false;
+                keys[e.code] = false;
+                e.preventDefault();
+            });
 
-        // 預設玩家選擇
-        playerChar = characters['yu'];
-
-        // 開始遊戲按鈕
-        document.getElementById('start-btn').addEventListener('click', () => {
-            // 隨機選擇對手（不能跟玩家重複，若重複就換一個）
-            const keys = Object.keys(characters);
-            let enemyKey = keys[Math.floor(Math.random() * keys.length)];
-            if (characters[enemyKey].name === playerChar.name) {
-                enemyKey = keys.find(k => characters[k].name !== playerChar.name) || keys[0];
-            }
-            enemyChar = characters[enemyKey];
-
-            // 更新介面
-            document.getElementById('p1-name').textContent = playerChar.name;
-            document.getElementById('p2-name').textContent = enemyChar.name;
-            document.getElementById('char-select-screen').style.display = 'none';
-            
-            resetGame();
-        });
-
-        function resetGame() {
-            playerHP = 100;
-            enemyHP = 100;
-            isGameOver = false;
-            updateHPWidgets();
-            document.getElementById('action-description').innerHTML = `比賽開始！<br><b>${playerChar.name}</b> VS <b>${enemyChar.name}</b><br>請使用下方按鈕或鍵盤 [J, K, L] 發動攻擊！`;
-        }
-
-        function updateHPWidgets() {
-            document.getElementById('p1-hp').style.width = playerHP + '%';
-            document.getElementById('p2-hp').style.width = enemyHP + '%';
-        }
-
-        // 核心戰鬥邏輯（回合制演繹）
-        function p1Attack(skillType) {
-            if (isGameOver) return;
-
-            let damage = 0;
-            let text = "";
-
-            if (skillType === 's1') {
-                damage = Math.floor(Math.random() * 8) + 8; // 8-15 傷害
-                text = playerChar.skills.s1;
-            } else if (skillType === 's2') {
-                damage = Math.floor(Math.random() * 12) + 12; // 12-23 傷害
-                text = playerChar.skills.s2;
-            } else if (skillType === 'ult') {
-                damage = Math.floor(Math.random() * 20) + 25; // 25-45 傷害
-                text = playerChar.skills.ult;
-            }
-
-            enemyHP -= damage;
-            if (enemyHP < 0) enemyHP = 0;
-            updateHPWidgets();
-
-            let resultText = `<b>【玩家回合】</b><br>${text}<br><span style="color:#ff5500;">造成了 ${damage} 點傷害！</span>`;
-
-            if (enemyHP <= 0) {
-                resultText += `<br><br><span style="color:#45f3ff; font-size:22px; font-weight:bold;">K.O.! 勝利者：${playerChar.name}！</span>`;
-                isGameOver = true;
-                document.getElementById('action-description').innerHTML = resultText;
-                showRestartOption();
-                return;
-            }
-
-            document.getElementById('action-description').innerHTML = resultText;
-
-            // 停頓一下換對手反擊
-            setTimeout(enemyCounterAttack, 2200);
-        }
-
-        function enemyCounterAttack() {
-            if (isGameOver) return;
-
-            const skills = ['s1', 's2', 'ult'];
-            const randomSkill = skills[Math.floor(Math.random() * skills.length)];
-            let damage = 0;
-            let text = "";
-
-            if (randomSkill === 's1') {
-                damage = Math.floor(Math.random() * 8) + 6;
-                text = enemyChar.skills.s1;
-            } else if (randomSkill === 's2') {
-                damage = Math.floor(Math.random() * 10) + 10;
-                text = enemyChar.skills.s2;
-            } else if (randomSkill === 'ult') {
-                damage = Math.floor(Math.random() * 15) + 20;
-                text = enemyChar.skills.ult;
-            }
-
-            playerHP -= damage;
-            if (playerHP < 0) playerHP = 0;
-            updateHPWidgets();
-
-            let resultText = `<b>【對手回合】</b><br>${text}<br><span style="color:#ff0055;">玩家受到了 ${damage} 點傷害！</span>`;
-
-            if (playerHP <= 0) {
-                resultText += `<br><br><span style="color:#ff0055; font-size:22px; font-weight:bold;">K.O.! 您被 ${enemyChar.name} 擊敗了...</span>`;
-                isGameOver = true;
-                document.getElementById('action-description').innerHTML = resultText;
-                showRestartOption();
-                return;
-            }
-
-            document.getElementById('action-description').innerHTML = resultText;
-        }
-
-        function showRestartOption() {
-            setTimeout(() => {
-                if(confirm("對局結束！要重新回到角色選擇畫面嗎？")) {
-                    document.getElementById('char-select-screen').style.display = 'flex';
+            // --- 粒子系統 ---
+            class Particle {
+                constructor(x, y, vx, vy, life, color, size = 3, type = 'circle') {
+                    this.x = x;
+                    this.y = y;
+                    this.vx = vx;
+                    this.vy = vy;
+                    this.life = life;
+                    this.maxLife = life;
+                    this.color = color;
+                    this.size = size;
+                    this.type = type; // 'circle' | 'spark' | 'trail' | 'shockwave'
+                    this.gravity = 0;
+                    this.friction = 0.98;
                 }
-            }, 1500);
-        }
-
-        // 綁定按鈕事件 (手機/滑鼠點擊)
-        document.getElementById('btn-skill1').addEventListener('click', () => p1Attack('s1'));
-        document.getElementById('btn-skill2').addEventListener('click', () => p1Attack('s2'));
-        document.getElementById('btn-ult').addEventListener('click', () => p1Attack('ult'));
-
-        // 綁定鍵盤事件 (電腦版)
-        document.addEventListener('keydown', (e) => {
-            if (isGameOver) return;
-            if (e.key === 'j' || e.key === 'J') {
-                p1Attack('s1');
-            } else if (e.key === 'k' || e.key === 'K') {
-                p1Attack('s2');
-            } else if (e.key === 'l' || e.key === 'L') {
-                p1Attack('ult');
+                update(dt) {
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+                    this.vy += this.gravity;
+                    this.x += this.vx * dt;
+                    this.y += this.vy * dt;
+                    this.life -= dt;
+                }
+                get alpha() { return Math.max(0, this.life / this.maxLife); }
+                get alive() { return this.life > 0; }
+                draw(ctx) {
+                    const a = this.alpha;
+                    ctx.save();
+                    ctx.globalAlpha = a;
+                    if (this.type === 'circle') {
+                        ctx.fillStyle = this.color;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * a, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (this.type === 'spark') {
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = 2 * a;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(this.x - this.vx * 3, this.y - this.vy * 3);
+                        ctx.stroke();
+                    } else if (this.type === 'trail') {
+                        ctx.fillStyle = this.color;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * a * 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * a * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (this.type === 'shockwave') {
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = 3 * a;
+                        const r = this.size * (1 - a) * 3 + 5;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
             }
-        });
+            let particles = [];
+
+            function spawnParticles(x, y, count, color, spread = 4, life = 0.6, type = 'circle', size = 3) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * spread + spread * 0.3;
+                    const vx = Math.cos(angle) * speed;
+                    const vy = Math.sin(angle) * speed - Math.random() * spread;
+                    particles.push(new Particle(x, y, vx, vy, life + Math.random() * 0.3, color, size, type));
+                }
+            }
+
+            function spawnHitSparks(x, y, count, color) {
+                for (let i = 0; i < count; i++) {
+                    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI;
+                    const speed = Math.random() * 8 + 3;
+                    particles.push(new Particle(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 0.3, color, 4,
+                        'spark'));
+                }
+            }
+
+            // --- 戰鬥角色類 ---
+            class Fighter {
+                constructor(x, y, charData, isPlayer1, isCPU = false) {
+                    this.x = x;
+                    this.y = y;
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.width = 44;
+                    this.height = 90;
+                    this.charData = charData;
+                    this.isPlayer1 = isPlayer1;
+                    this.isCPU = isCPU;
+                    this.facingRight = isPlayer1;
+                    this.grounded = true;
+                    this.hp = 100;
+                    this.maxHp = 100;
+                    this.energy = 0;
+                    this.maxEnergy = 100;
+
+                    // 狀態
+                    this.state = 'idle'; // idle | walk | jump | attack | skill | ultimate | hit | knocked | block | stunned
+                    this.stateTimer = 0;
+                    this.attackFrame = 0;
+                    this.attackDuration = 0;
+                    this.attackHit = false;
+                    this.skillCooldown = 0;
+                    this.ultimateCooldown = 0;
+                    this.invincible = 0;
+                    this.hitStun = 0;
+                    this.comboCount = 0;
+                    this.lastHitTime = 0;
+
+                    // 技能特定
+                    this.skillProjectile = null;
+                    this.afterimageTrails = [];
+                    this.specialEffectTimer = 0;
+                    this.flashTimer = 0;
+
+                    // CPU AI
+                    this.aiTimer = 0;
+                    this.aiAction = 'idle';
+                    this.aiCooldown = 0;
+                }
+
+                get grounded() { return this._grounded; }
+                set grounded(v) { this._grounded = v; }
+
+                get rect() {
+                    return {
+                        x: this.x - this.width / 2,
+                        y: this.y - this.height,
+                        w: this.width,
+                        h: this.height,
+                    };
+                }
+
+                get attackRect() {
+                    const r = this.rect;
+                    if (this.facingRight) {
+                        return { x: r.x + r.w, y: r.y + r.h * 0.2, w: 50, h: r.h * 0.5 };
+                    } else {
+                        return { x: r.x - 50, y: r.y + r.h * 0.2, w: 50, h: r.h * 0.5 };
+                    }
+                }
+
+                get skillRect() {
+                    const r = this.rect;
+                    if (this.facingRight) {
+                        return { x: r.x + r.w - 10, y: r.y + r.h * 0.1, w: 65, h: r.h * 0.7 };
+                    } else {
+                        return { x: r.x - 55, y: r.y + r.h * 0.1, w: 65, h: r.h * 0.7 };
+                    }
+                }
+
+                reset(x) {
+                    this.x = x;
+                    this.y = H - 60;
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.hp = this.maxHp;
+                    this.energy = 0;
+                    this.state = 'idle';
+                    this.stateTimer = 0;
+                    this.attackFrame = 0;
+                    this.attackHit = false;
+                    this.skillCooldown = 0;
+                    this.ultimateCooldown = 0;
+                    this.invincible = 0;
+                    this.hitStun = 0;
+                    this.comboCount = 0;
+                    this.skillProjectile = null;
+                    this.afterimageTrails = [];
+                    this.specialEffectTimer = 0;
+                    this.flashTimer = 0;
+                    this.grounded = true;
+                }
+
+                update(dt, opponent) {
+                    // 全局減速
+                    const effectiveDt = globalSlowMo > 0 ? dt * 0.15 : dt;
+                    const realDt = dt;
+
+                    if (globalSlowMo > 0) globalSlowMo = Math.max(0, globalSlowMo - realDt);
+                    if (shakeAmount > 0) shakeAmount = Math.max(0, shakeAmount - realDt * 30);
+
+                    // 冷卻
+                    if (this.skillCooldown > 0) this.skillCooldown -= realDt;
+                    if (this.ultimateCooldown > 0) this.ultimateCooldown -= realDt;
+                    if (this.invincible > 0) this.invincible -= realDt;
+                    if (this.hitStun > 0) this.hitStun -= realDt;
+                    if (this.flashTimer > 0) this.flashTimer -= realDt;
+                    if (this.specialEffectTimer > 0) this.specialEffectTimer -= realDt;
+
+                    // 滯空物理
+                    if (!this.grounded) {
+                        this.vy += 1800 * realDt;
+                        this.y += this.vy * realDt;
+                        if (this.y >= H - 60) {
+                            this.y = H - 60;
+                            this.vy = 0;
+                            this.grounded = true;
+                            if (this.state === 'jump') this.state = 'idle';
+                        }
+                    }
+
+                    // 水平摩擦
+                    if (this.grounded && (this.state === 'idle' || this.state === 'walk')) {
+                        this.vx *= 0.85;
+                    }
+
+                    // 水平移動
+                    if (this.state !== 'hit' && this.state !== 'knocked' && this.hitStun <= 0) {
+                        this.x += this.vx * realDt;
+                    }
+
+                    // 邊界
+                    this.x = Math.max(40, Math.min(W - 40, this.x));
+
+                    // 狀態計時
+                    if (this.stateTimer > 0) {
+                        this.stateTimer -= realDt;
+                        if (this.stateTimer <= 0 && (this.state === 'attack' || this.state === 'skill')) {
+                            this.state = 'idle';
+                            this.attackHit = false;
+                            this.attackFrame = 0;
+                            this.skillProjectile = null;
+                        }
+                        if (this.stateTimer <= 0 && this.state === 'ultimate') {
+                            this.state = 'idle';
+                            this.attackHit = false;
+                            this.attackFrame = 0;
+                            this.specialEffectTimer = 0;
+                        }
+                        if (this.stateTimer <= 0 && this.state === 'hit') {
+                            this.state = 'idle';
+                            this.hitStun = 0;
+                        }
+                    }
+
+                    // 攻擊幀更新
+                    if (this.state === 'attack' && this.attackFrame < this.attackDuration) {
+                        this.attackFrame += realDt;
+                    }
+                    if (this.state === 'skill' && this.attackFrame < this.attackDuration) {
+                        this.attackFrame += realDt;
+                    }
+                    if (this.state === 'ultimate' && this.attackFrame < this.attackDuration) {
+                        this.attackFrame += realDt;
+                    }
+
+                    // 殘影
+                    if (this.state === 'ultimate' && this.charData.name.includes('優')) {
+                        if (Math.random() < 0.4) {
+                            this.afterimageTrails.push({ x: this.x, y: this.y, life: 0.25, alpha: 0.7 });
+                        }
+                    }
+                    for (let i = this.afterimageTrails.length - 1; i >= 0; i--) {
+                        this.afterimageTrails[i].life -= realDt;
+                        if (this.afterimageTrails[i].life <= 0) this.afterimageTrails.splice(i, 1);
+                    }
+
+                    // 飛行道具更新
+                    if (this.skillProjectile) {
+                        this.skillProjectile.x += this.skillProjectile.vx * realDt;
+                        this.skillProjectile.y += this.skillProjectile.vy * realDt;
+                        this.skillProjectile.life -= realDt;
+                        if (this.skillProjectile.life <= 0 || this.skillProjectile.x < -30 || this.skillProjectile.x > W +
+                            30) {
+                            this.skillProjectile = null;
+                        }
+                    }
+
+                    // CPU AI
+                    if (this.isCPU && this.hitStun <= 0 && this.state !== 'hit' && this.state !== 'knocked') {
+                        this.updateAI(realDt, opponent);
+                    }
+
+                    // 能量衰減
+                    if (this.state === 'idle' && this.energy > 0) {
+                        this.energy = Math.max(0, this.energy - 0.5 * realDt);
+                    }
+                }
+
+                updateAI(dt, opponent) {
+                    this.aiCooldown -= dt;
+                    const dx = opponent.x - this.x;
+                    const dist = Math.abs(dx);
+                    const facing = dx > 0;
+                    this.facingRight = facing;
+
+                    if (this.aiCooldown > 0) return;
+                    this.aiCooldown = 0.15 + Math.random() * 0.3;
+
+                    if (dist < 70 && opponent.state === 'attack' && Math.random() < 0.5) {
+                        // 防禦/後退
+                        this.vx = -Math.sign(dx) * 200;
+                        this.state = 'walk';
+                        return;
+                    }
+
+                    if (dist < 55 && Math.random() < 0.3 && this.skillCooldown <= 0) {
+                        this.useSkill();
+                        this.aiCooldown = 0.5;
+                    } else if (dist < 50 && Math.random() < 0.4) {
+                        this.attack();
+                        this.aiCooldown = 0.35;
+                    } else if (dist < 180 && Math.random() < 0.2 && this.energy >= 60 && this.ultimateCooldown <= 0) {
+                        this.useUltimate();
+                        this.aiCooldown = 0.7;
+                    } else if (dist > 60) {
+                        this.vx = Math.sign(dx) * (200 + Math.random() * 150);
+                        this.state = 'walk';
+                    } else if (Math.random() < 0.15 && this.grounded) {
+                        this.jump();
+                    }
+                }
+
+                jump() {
+                    if (!this.grounded || this.hitStun > 0) return;
+                    if (this.state === 'hit' || this.state === 'knocked') return;
+                    this.vy = -650;
+                    this.grounded = false;
+                    this.state = 'jump';
+                }
+
+                attack() {
+                    if (this.hitStun > 0) return;
+                    if (this.state === 'attack' || this.state === 'skill' || this.state === 'ultimate') return;
+                    if (this.state === 'hit' || this.state === 'knocked') return;
+                    this.state = 'attack';
+                    this.stateTimer = 0.35;
+                    this.attackFrame = 0;
+                    this.attackDuration = 0.35;
+                    this.attackHit = false;
+                    // 小突進
+                    this.vx = this.facingRight ? 180 : -180;
+                }
+
+                useSkill() {
+                    if (this.hitStun > 0) return;
+                    if (this.skillCooldown > 0) return;
+                    if (this.state === 'attack' || this.state === 'skill' || this.state === 'ultimate') return;
+                    if (this.state === 'hit' || this.state === 'knocked') return;
+                    this.state = 'skill';
+                    this.stateTimer = 0.5;
+                    this.attackFrame = 0;
+                    this.attackDuration = 0.5;
+                    this.attackHit = false;
+                    this.skillCooldown = 2.5;
+                    this.energy = Math.min(this.maxEnergy, this.energy + 8);
+
+                    // 角色特定技能
+                    const name = this.charData.name;
+                    if (name.includes('優')) {
+                        // 瞬步：快速前衝
+                        this.vx = this.facingRight ? 600 : -600;
+                        this.invincible = 0.3;
+                        this.specialEffectTimer = 0.4;
+                        spawnParticles(this.x, this.y, 12, '#aaa', 5, 0.4, 'trail', 2);
+                    } else if (name.includes('里奧')) {
+                        // 爆裂刺拳：原地多段判定
+                        this.vx = this.facingRight ? 100 : -100;
+                        this.specialEffectTimer = 0.45;
+                        spawnParticles(this.x + (this.facingRight ? 30 : -30), this.y - 40, 15, '#ff6644', 6, 0.5,
+                            'spark', 3);
+                    } else if (name.includes('櫻')) {
+                        // 重力摔：近身投技
+                        this.vx = this.facingRight ? 250 : -250;
+                        this.specialEffectTimer = 0.4;
+                        spawnParticles(this.x, this.y - 20, 8, '#4dc9f6', 3, 0.5, 'circle', 4);
+                    } else if (name.includes('健')) {
+                        // 離子正拳突：飛行道具
+                        this.skillProjectile = {
+                            x: this.x + (this.facingRight ? 40 : -40),
+                            y: this.y - 45,
+                            vx: this.facingRight ? 500 : -500,
+                            vy: 0,
+                            life: 1.0,
+                            color: '#ffd700',
+                            size: 10,
+                            damage: 12,
+                        };
+                        spawnParticles(this.skillProjectile.x, this.skillProjectile.y, 8, '#ffd700', 3, 0.4, 'spark', 3);
+                    } else if (name.includes('龍')) {
+                        // 龍氣功：貼地飛行道具
+                        this.skillProjectile = {
+                            x: this.x + (this.facingRight ? 40 : -40),
+                            y: this.y - 20,
+                            vx: this.facingRight ? 380 : -380,
+                            vy: 0,
+                            life: 1.2,
+                            color: '#00ff88',
+                            size: 14,
+                            damage: 10,
+                        };
+                        spawnParticles(this.skillProjectile.x, this.skillProjectile.y, 10, '#00ff88', 4, 0.5, 'trail', 3);
+                    }
+                }
+
+                useUltimate() {
+                    if (this.hitStun > 0) return;
+                    if (this.ultimateCooldown > 0) return;
+                    if (this.energy < 50) return;
+                    if (this.state === 'attack' || this.state === 'skill' || this.state === 'ultimate') return;
+                    if (this.state === 'hit' || this.state === 'knocked') return;
+                    this.state = 'ultimate';
+                    this.stateTimer = 0.7;
+                    this.attackFrame = 0;
+                    this.attackDuration = 0.7;
+                    this.attackHit = false;
+                    this.energy -= 50;
+                    this.ultimateCooldown = 4;
+                    this.specialEffectTimer = 0.65;
+                    this.invincible = 0.35;
+
+                    const name = this.charData.name;
+                    if (name.includes('優')) {
+                        spawnParticles(this.x, this.y, 25, '#e8e8e8', 8, 0.6, 'trail', 2);
+                        this.vx = this.facingRight ? 400 : -400;
+                    } else if (name.includes('里奧')) {
+                        spawnParticles(this.x, this.y - 30, 30, '#ff0000', 10, 0.7, 'spark', 4);
+                        this.vx = this.facingRight ? 250 : -250;
+                    } else if (name.includes('櫻')) {
+                        spawnParticles(this.x, this.y - 20, 20, '#4dc9f6', 6, 0.8, 'circle', 5);
+                    } else if (name.includes('健')) {
+                        spawnParticles(this.x, this.y - 40, 20, '#ffd700', 7, 0.6, 'spark', 3);
+                    } else if (name.includes('龍')) {
+                        spawnParticles(this.x, this.y, 35, '#00ff88', 9, 0.8, 'trail', 3);
+                    }
+                }
+
+                takeDamage(dmg, knockbackX, knockbackY, attacker) {
+                    if (this.invincible > 0) return;
+                    this.hp = Math.max(0, this.hp - dmg);
+                    this.state = 'hit';
+                    this.stateTimer = 0.3;
+                    this.hitStun = 0.3;
+                    this.vx = knockbackX;
+                    this.vy = knockbackY;
+                    if (knockbackY < -100) this.grounded = false;
+                    this.flashTimer = 0.2;
+                    this.attackHit = false;
+                    this.skillProjectile = null;
+                    globalSlowMo = Math.max(globalSlowMo, 0.08);
+                    shakeAmount = Math.max(shakeAmount, dmg * 0.5);
+                    this.energy = Math.min(this.maxEnergy, this.energy + dmg * 0.6);
+
+                    if (attacker) {
+                        attacker.comboCount++;
+                        attacker.lastHitTime = performance.now() / 1000;
+                        attacker.energy = Math.min(attacker.maxEnergy, attacker.energy + dmg * 0.3);
+                    }
+
+                    spawnHitSparks(this.x, this.y - 30, Math.floor(dmg / 2), '#ffffff');
+                    spawnParticles(this.x, this.y - 30, Math.floor(dmg), '#ffaa00', 5, 0.4, 'circle', 3);
+                }
+
+                draw(ctx) {
+                    ctx.save();
+                    const r = this.rect;
+                    const flash = this.flashTimer > 0 && Math.floor(this.flashTimer * 30) % 2 === 0;
+
+                    // 陰影
+                    if (this.grounded) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                        ctx.beginPath();
+                        ctx.ellipse(this.x, H - 58, this.width / 2, 6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // 殘影
+                    for (const trail of this.afterimageTrails) {
+                        ctx.save();
+                        ctx.globalAlpha = trail.alpha * 0.4;
+                        this.drawBody(ctx, trail.x, trail.y, this.facingRight, flash, true);
+                        ctx.restore();
+                    }
+
+                    // 主體
+                    this.drawBody(ctx, this.x, this.y, this.facingRight, flash, false);
+
+                    // 特殊效果光環
+                    if (this.specialEffectTimer > 0 && this.state === 'skill') {
+                        const alpha = this.specialEffectTimer * 2;
+                        ctx.strokeStyle = this.charData.accent;
+                        ctx.globalAlpha = Math.min(1, alpha);
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y - this.height / 2, this.width * 0.8, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    if (this.specialEffectTimer > 0 && this.state === 'ultimate') {
+                        const alpha = this.specialEffectTimer * 2;
+                        ctx.strokeStyle = this.charData.accent;
+                        ctx.globalAlpha = Math.min(1, alpha);
+                        ctx.lineWidth = 6;
+                        ctx.setLineDash([8, 4]);
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y - this.height / 2, this.width * 1.2 + Math.sin(performance.now() / 80) * 15,
+                            0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+
+                    // 飛行道具
+                    if (this.skillProjectile) {
+                        const p = this.skillProjectile;
+                        ctx.fillStyle = p.color;
+                        ctx.shadowColor = p.color;
+                        ctx.shadowBlur = 15;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        // 拖尾
+                        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // 無敵閃爍
+                    if (this.invincible > 0 && Math.floor(this.invincible * 40) % 2 === 0) {
+                        ctx.globalAlpha = 0.4;
+                        this.drawBody(ctx, this.x, this.y, this.facingRight, true, true);
+                        ctx.globalAlpha = 1;
+                    }
+
+                    ctx.restore();
+                }
+
+                drawBody(ctx, cx, cy, facingRight, flash, isGhost) {
+                    const r = {
+                        x: cx - this.width / 2,
+                        y: cy - this.height,
+                        w: this.width,
+                        h: this.height,
+                    };
+                    const accent = this.charData.accent;
+                    const baseColor = flash ? '#ffffff' : this.charData.color;
+
+                    ctx.fillStyle = isGhost ? 'rgba(200,200,200,0.5)' : baseColor;
+
+                    // 腿部
+                    ctx.fillRect(r.x + r.w * 0.25, r.y + r.h * 0.7, r.w * 0.22, r.h * 0.3);
+                    ctx.fillRect(r.x + r.w * 0.53, r.y + r.h * 0.7, r.w * 0.22, r.h * 0.3);
+
+                    // 身體
+                    ctx.fillRect(r.x + r.w * 0.1, r.y + r.h * 0.2, r.w * 0.8, r.h * 0.5);
+
+                    // 頭部
+                    ctx.fillStyle = isGhost ? 'rgba(220,200,180,0.5)' : '#e8c8a0';
+                    ctx.beginPath();
+                    ctx.arc(cx, r.y + r.h * 0.15, r.w * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 裝飾/特徵
+                    if (!isGhost) {
+                        ctx.fillStyle = accent;
+                        // 護額或頭帶
+                        ctx.fillRect(r.x + r.w * 0.05, r.y + r.h * 0.08, r.w * 0.9, 5);
+                        // 腰帶
+                        ctx.fillRect(r.x + r.w * 0.08, r.y + r.h * 0.55, r.w * 0.84, 6);
+                    }
+
+                    // 拳頭（攻擊時伸出）
+                    if (this.state === 'attack' && this.attackFrame > 0.05 && this.attackFrame < 0.2) {
+                        ctx.fillStyle = isGhost ? 'rgba(255,200,150,0.5)' : '#e8c8a0';
+                        const fx = facingRight ? r.x + r.w + 8 : r.x - 8;
+                        ctx.beginPath();
+                        ctx.arc(fx, r.y + r.h * 0.45, 10, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // --- 遊戲變數 ---
+            let fighter1 = null;
+            let fighter2 = null;
+            let selectionCursor1 = 0;
+            let selectionCursor2 = 4;
+            let selectConfirmed1 = false;
+            let selectConfirmed2 = false;
+
+            function createFighters() {
+                const c1 = CHARACTERS[p1Selection];
+                const c2 = CHARACTERS[p2Selection];
+                fighter1 = new Fighter(200, H - 60, c1, true, false);
+                fighter2 = new Fighter(W - 200, H - 60, c2, false, isVsCPU);
+                fighter1.facingRight = true;
+                fighter2.facingRight = false;
+            }
+
+            function resetRound() {
+                fighter1.reset(200);
+                fighter2.reset(W - 200);
+                fighter1.facingRight = true;
+                fighter2.facingRight = false;
+                particles = [];
+                roundEndTimer = 0;
+                roundWinner = null;
+                roundStartCountdown = 1.2;
+                globalSlowMo = 0;
+                shakeAmount = 0;
+                fighter1.energy = 0;
+                fighter2.energy = 0;
+            }
+
+            function checkRoundEnd() {
+                if (roundWinner) return;
+                if (fighter1.hp <= 0) {
+                    roundWinner = 'p2';
+                    p2RoundWins++;
+                    roundEndTimer = 1.5;
+                    globalSlowMo = 0.3;
+                    spawnParticles(fighter1.x, fighter1.y - 30, 40, '#ff4444', 8, 0.8, 'spark', 4);
+                } else if (fighter2.hp <= 0) {
+                    roundWinner = 'p1';
+                    p1RoundWins++;
+                    roundEndTimer = 1.5;
+                    globalSlowMo = 0.3;
+                    spawnParticles(fighter2.x, fighter2.y - 30, 40, '#ff4444', 8, 0.8, 'spark', 4);
+                }
+                if (roundWinner) {
+                    if (p1RoundWins >= 2) {
+                        matchWinner = 'p1';
+                        gameState = STATE.MATCH_END;
+                        matchEndTimer = 3;
+                    } else if (p2RoundWins >= 2) {
+                        matchWinner = 'p2';
+                        gameState = STATE.MATCH_END;
+                        matchEndTimer = 3;
+                    } else {
+                        gameState = STATE.ROUND_END;
+                        roundNumber++;
+                    }
+                }
+            }
+
+            function startNextRound() {
+                gameState = STATE.FIGHT;
+                roundWinner = null;
+                resetRound();
+            }
+
+            function handleFighterInput(f, opponent, isP1) {
+                if (f.hitStun > 0) return;
+                if (f.state === 'hit' || f.state === 'knocked') return;
+                if (f.state === 'attack' || f.state === 'skill' || f.state === 'ultimate') return;
+                if (f.isCPU) return;
+
+                const moveLeft = isP1 ? keys['a'] : keys['arrowleft'];
+                const moveRight = isP1 ? keys['d'] : keys['arrowright'];
+                const jumpKey = isP1 ? keys['w'] : keys['arrowup'];
+                const attackKey = isP1 ? keys['j'] : keys['1'] || keys['numpad1'];
+                const skillKey = isP1 ? keys['k'] : keys['2'] || keys['numpad2'];
+                const ultimateKey = isP1 ? keys['l'] : keys['3'] || keys['numpad3'];
+                const blockKey = isP1 ? keys['s'] : keys['arrowdown'];
+
+                // 防禦
+                if (blockKey && f.grounded && opponent.state === 'attack') {
+                    f.state = 'idle';
+                    f.vx *= 0.3;
+                    return;
+                }
+
+                // 移動
+                if (moveLeft && !moveRight) {
+                    f.vx = -280;
+                    f.facingRight = false;
+                    if (f.state === 'idle') f.state = 'walk';
+                } else if (moveRight && !moveLeft) {
+                    f.vx = 280;
+                    f.facingRight = true;
+                    if (f.state === 'idle') f.state = 'walk';
+                } else if (!moveLeft && !moveRight && f.state === 'walk') {
+                    f.state = 'idle';
+                }
+
+                // 跳躍
+                if (jumpKey && f.grounded) {
+                    f.jump();
+                }
+
+                // 攻擊
+                if (attackKey) {
+                    f.attack();
+                }
+
+                // 技能
+                if (skillKey && f.skillCooldown <= 0) {
+                    f.useSkill();
+                }
+
+                // 必殺技
+                if (ultimateKey && f.ultimateCooldown <= 0 && f.energy >= 50) {
+                    f.useUltimate();
+                }
+            }
+
+            function checkCollisions(f1, f2) {
+                // f1 攻擊 f2
+                if (f1.state === 'attack' && f1.attackFrame > 0.08 && f1.attackFrame < 0.25 && !f1.attackHit) {
+                    if (rectsOverlap(f1.attackRect, f2.rect)) {
+                        f1.attackHit = true;
+                        const kbx = f1.facingRight ? 350 : -350;
+                        f2.takeDamage(7, kbx, -120, f1);
+                    }
+                }
+
+                // f1 技能命中 f2
+                if (f1.state === 'skill' && f1.attackFrame > 0.06 && f1.attackFrame < 0.35 && !f1.attackHit) {
+                    const sRect = f1.skillRect;
+                    if (rectsOverlap(sRect, f2.rect)) {
+                        f1.attackHit = true;
+                        const kbx = f1.facingRight ? 450 : -450;
+                        const name = f1.charData.name;
+                        let dmg = 14;
+                        if (name.includes('櫻')) dmg = 18; // 投技傷害更高
+                        if (name.includes('里奧')) dmg = 16;
+                        f2.takeDamage(dmg, kbx, -200, f1);
+                        if (name.includes('櫻')) {
+                            // 重力摔：砸地效果
+                            spawnParticles(f2.x, H - 60, 20, '#4dc9f6', 6, 0.5, 'circle', 5);
+                            shakeAmount = Math.max(shakeAmount, 8);
+                        }
+                    }
+                }
+
+                // f1 必殺技命中 f2
+                if (f1.state === 'ultimate' && f1.attackFrame > 0.1 && f1.attackFrame < 0.5 && !f1.attackHit) {
+                    const uRect = {
+                        x: f1.rect.x - 30,
+                        y: f1.rect.y - 20,
+                        w: f1.rect.w + 60,
+                        h: f1.rect.h + 40,
+                    };
+                    if (rectsOverlap(uRect, f2.rect)) {
+                        f1.attackHit = true;
+                        const kbx = f1.facingRight ? 550 : -550;
+                        const name = f1.charData.name;
+                        let dmg = 25;
+                        if (name.includes('龍')) dmg = 30;
+                        if (name.includes('健')) dmg = 27;
+                        f2.takeDamage(dmg, kbx, -350, f1);
+                        globalSlowMo = Math.max(globalSlowMo, 0.15);
+                        shakeAmount = Math.max(shakeAmount, 12);
+                        spawnParticles(f2.x, f2.y - 30, 30, '#ffffff', 10, 0.6, 'spark', 4);
+                    }
+                }
+
+                // 飛行道具碰撞
+                if (f1.skillProjectile && !f1.skillProjectile.hit) {
+                    const p = f1.skillProjectile;
+                    const pRect = { x: p.x - p.size, y: p.y - p.size, w: p.size * 2, h: p.size * 2 };
+                    if (rectsOverlap(pRect, f2.rect)) {
+                        f1.skillProjectile.hit = true;
+                        f1.skillProjectile = null;
+                        const kbx = p.vx > 0 ? 300 : -300;
+                        f2.takeDamage(p.damage || 10, kbx, -100, f1);
+                        spawnParticles(p.x, p.y, 15, p.color, 5, 0.4, 'circle', 3);
+                    }
+                }
+            }
+
+            function rectsOverlap(a, b) {
+                return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
+            }
+
+            // --- 繪製函數 ---
+            function drawBackground() {
+                // 漸層背景
+                const grad = ctx.createLinearGradient(0, 0, 0, H);
+                grad.addColorStop(0, '#0a0a20');
+                grad.addColorStop(0.5, '#111133');
+                grad.addColorStop(1, '#1a1a30');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+
+                // 地面
+                ctx.fillStyle = '#2a2a3a';
+                ctx.fillRect(0, H - 55, W, 55);
+                ctx.fillStyle = '#3a3a4a';
+                ctx.fillRect(0, H - 55, W, 3);
+                // 地面紋理
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < W; i += 60) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, H - 55);
+                    ctx.lineTo(i + 20, H);
+                    ctx.stroke();
+                }
+
+                // 觀眾席陰影
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                for (let i = 0; i < 10; i++) {
+                    ctx.beginPath();
+                    ctx.arc(60 + i * 90, 20, 18, 0, Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            function drawHUD() {
+                if (!fighter1 || !fighter2) return;
+
+                // P1 血條
+                const barY1 = 16;
+                const barW = 340;
+                const barH = 22;
+                const barX1 = 20;
+                drawHealthBar(barX1, barY1, barW, barH, fighter1.hp, fighter1.maxHp, fighter1.charData.accent, true);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.fillText(fighter1.charData.name, barX1 + 8, barY1 - 6);
+
+                // P1 能量
+                const eBarH = 8;
+                const eY1 = barY1 + barH + 4;
+                drawEnergyBar(barX1, eY1, barW, eBarH, fighter1.energy, fighter1.maxEnergy, '#ffaa00');
+
+                // P2 血條
+                const barX2 = W - 20 - barW;
+                const barY2 = 16;
+                drawHealthBar(barX2, barY2, barW, barH, fighter2.hp, fighter2.maxHp, fighter2.charData.accent, false);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px "Segoe UI","Noto Sans TC",sans-serif';
+                const nameW2 = ctx.measureText(fighter2.charData.name).width;
+                ctx.fillText(fighter2.charData.name, barX2 + barW - nameW2 - 8, barY2 - 6);
+
+                // P2 能量
+                const eY2 = barY2 + barH + 4;
+                drawEnergyBar(barX2, eY2, barW, eBarH, fighter2.energy, fighter2.maxEnergy, '#ffaa00');
+
+                // 回合數
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 18px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`ROUND ${roundNumber}`, W / 2, barY1 + barH / 2 + 6);
+                ctx.textAlign = 'start';
+
+                // 計時器（假設99秒）
+                ctx.fillStyle = '#ccc';
+                ctx.font = 'bold 14px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('99', W / 2, barY1 + barH + 24);
+                ctx.textAlign = 'start';
+
+                // 技能冷卻指示
+                if (fighter1.skillCooldown > 0) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.font = '10px "Segoe UI","Noto Sans TC",sans-serif';
+                    ctx.fillText(`技能冷卻:${fighter1.skillCooldown.toFixed(1)}s`, barX1, eY1 + 14);
+                }
+                if (fighter2.skillCooldown > 0) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.font = '10px "Segoe UI","Noto Sans TC",sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`技能冷卻:${fighter2.skillCooldown.toFixed(1)}s`, barX2 + barW, eY2 + 14);
+                    ctx.textAlign = 'start';
+                }
+            }
+
+            function drawHealthBar(x, y, w, h, hp, maxHp, accent, leftAligned) {
+                // 背景
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeStyle = '#555';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, w, h);
+
+                // 血量
+                const ratio = hp / maxHp;
+                const hpW = w * ratio;
+                const grad = ctx.createLinearGradient(x, y, x + w, y);
+                if (ratio > 0.5) {
+                    grad.addColorStop(0, '#44cc44');
+                    grad.addColorStop(1, accent);
+                } else if (ratio > 0.25) {
+                    grad.addColorStop(0, '#ccaa00');
+                    grad.addColorStop(1, '#ff8800');
+                } else {
+                    grad.addColorStop(0, '#cc3333');
+                    grad.addColorStop(1, '#ff0000');
+                }
+                ctx.fillStyle = grad;
+                if (leftAligned) {
+                    ctx.fillRect(x, y, hpW, h);
+                } else {
+                    ctx.fillRect(x + w - hpW, y, hpW, h);
+                }
+
+                // 光澤
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                if (leftAligned) {
+                    ctx.fillRect(x, y, hpW, h / 2);
+                } else {
+                    ctx.fillRect(x + w - hpW, y, hpW, h / 2);
+                }
+
+                // HP數字
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 13px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${Math.ceil(hp)}`, x + w / 2, y + h / 2 + 5);
+                ctx.textAlign = 'start';
+            }
+
+            function drawEnergyBar(x, y, w, h, energy, maxEnergy, color) {
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, w, h);
+                const ratio = energy / maxEnergy;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w * ratio, h);
+                // 分段線
+                for (let i = 1; i < 3; i++) {
+                    const sx = x + w * (i / 3);
+                    ctx.strokeStyle = '#333';
+                    ctx.beginPath();
+                    ctx.moveTo(sx, y);
+                    ctx.lineTo(sx, y + h);
+                    ctx.stroke();
+                }
+            }
+
+            function drawSelectScreen() {
+                drawBackground();
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.fillStyle = '#e2b04a';
+                ctx.font = 'bold 28px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('選擇你的戰士', W / 2, 50);
+
+                const modeText = isVsCPU ? '🆚 單人 vs 電腦 (點擊下方切換)' : '🆚 雙人對戰模式';
+                ctx.fillStyle = '#aaa';
+                ctx.font = '14px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.fillText(modeText, W / 2, 78);
+                ctx.textAlign = 'start';
+
+                const cardW = 150;
+                const cardH = 180;
+                const startX = (W - cardW * 5 - 40 * 4) / 2;
+                const cardY = 105;
+
+                for (let i = 0; i < CHARACTERS.length; i++) {
+                    const cx = startX + i * (cardW + 40);
+                    const ch = CHARACTERS[i];
+                    const isSelected1 = i === selectionCursor1;
+                    const isSelected2 = i === selectionCursor2;
+                    const isHovered = isSelected1 || isSelected2;
+
+                    // 卡片背景
+                    ctx.fillStyle = isHovered ? '#2a2a50' : '#1a1a30';
+                    ctx.strokeStyle = isSelected1 ? '#ffcc00' : isSelected2 ? '#ff6644' : '#444';
+                    ctx.lineWidth = isHovered ? 3 : 1;
+                    ctx.beginPath();
+                    ctx.roundRect(cx, cardY, cardW, cardH, 10);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // 角色預覽
+                    const previewX = cx + cardW / 2;
+                    const previewY = cardY + 55;
+                    ctx.fillStyle = ch.color;
+                    ctx.fillRect(previewX - 22, previewY - 45, 44, 70);
+                    ctx.fillStyle = '#e8c8a0';
+                    ctx.beginPath();
+                    ctx.arc(previewX, previewY - 50, 16, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = ch.accent;
+                    ctx.fillRect(previewX - 20, previewY - 56, 40, 4);
+                    ctx.fillRect(previewX - 18, previewY - 5, 36, 5);
+
+                    // 名字
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 13px "Segoe UI","Noto Sans TC",sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(ch.name, previewX, previewY + 30);
+
+                    // 描述
+                    ctx.fillStyle = '#aaa';
+                    ctx.font = '10px "Segoe UI","Noto Sans TC",sans-serif';
+                    ctx.fillText(ch.desc, previewX, previewY + 48);
+
+                    // 選擇標記
+                    if (isSelected1) {
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.font = 'bold 14px "Segoe UI","Noto Sans TC",sans-serif';
+                        ctx.fillText('▲ P1 ▲', previewX, previewY + 68);
+                    }
+                    if (isSelected2) {
+                        ctx.fillStyle = '#ff6644';
+                        ctx.font = 'bold 14px "Segoe UI","Noto Sans TC",sans-serif';
+                        ctx.fillText('▼ P2 ▼', previewX, previewY + (isSelected1 ? 84 : 68));
+                    }
+                    ctx.textAlign = 'start';
+                }
+
+                // 提示
+                ctx.fillStyle = '#ccc';
+                ctx.font = '13px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('P1: A/D 選擇 | W 確認 | P2: ←→ 選擇 | ↑ 確認', W / 2, cardY + cardH + 30);
+                ctx.fillText('按 Enter 開始戰鬥！', W / 2, cardY + cardH + 55);
+                ctx.textAlign = 'start';
+            }
+
+            function drawRoundEndOverlay() {
+                ctx.fillStyle = 'rgba(0,0,0,0.65)';
+                ctx.fillRect(0, 0, W, H);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 36px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                const winnerName = roundWinner === 'p1' ? fighter1.charData.name : fighter2.charData.name;
+                ctx.fillText(`${winnerName} 贏得此回合！`, W / 2, H / 2 - 10);
+                ctx.fillStyle = '#e2b04a';
+                ctx.font = 'bold 18px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.fillText('按 Enter 開始下一回合', W / 2, H / 2 + 35);
+                ctx.textAlign = 'start';
+            }
+
+            function drawMatchEndOverlay() {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, W, H);
+                ctx.fillStyle = '#e2b04a';
+                ctx.font = 'bold 40px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.textAlign = 'center';
+                const champName = matchWinner === 'p1' ? fighter1.charData.name : fighter2.charData.name;
+                ctx.fillText(`🏆 ${champName} 獲得勝利！🏆`, W / 2, H / 2 - 15);
+                ctx.fillStyle = '#fff';
+                ctx.font = '16px "Segoe UI","Noto Sans TC",sans-serif';
+                ctx.fillText('按 Enter 重新開始', W / 2, H / 2 + 30);
+                ctx.textAlign = 'start';
+            }
+
+            function updateRoundIndicator() {
+                const p1r1 = document.getElementById('p1r1');
+                const p1r2 = document.getElementById('p1r2');
+                const p2r1 = document.getElementById('p2r1');
+                const p2r2 = document.getElementById('p2r2');
+                [p1r1, p1r2, p2r1, p2r2].forEach(d => d.className = 'round-dot');
+                if (p1RoundWins >= 1) p1r1.classList.add('won');
+                if (p1RoundWins >= 2) p1r2.classList.add('won');
+                if (p2RoundWins >= 1) p2r1.classList.add('lost');
+                if (p2RoundWins >= 2) p2r2.classList.add('lost');
+                // 從P2角度看
+                if (p2RoundWins >= 1) document.getElementById('p2r1').classList.add('lost');
+                if (p2RoundWins >= 2) document.getElementById('p2r2').classList.add('lost');
+                // 重新整理
+                [p1r1, p1r2].forEach((d, i) => {
+                    d.className = 'round-dot';
+                    if (i < p1RoundWins) d.classList.add('won');
+                });
+                [p2r1, p2r2].forEach((d, i) => {
+                    d.className = 'round-dot';
+                    if (i < p2RoundWins) d.classList.add('lost');
+                });
+            }
+
+            // --- 主循環 ---
+            let lastTime = performance.now();
+
+            function gameLoop(timestamp) {
+                let dt = (timestamp - lastTime) / 1000;
+                if (dt > 0.1) dt = 0.1; // 防止大幀跳
+                if (dt <= 0) dt = 0.016;
+                lastTime = timestamp;
+
+                ctx.clearRect(0, 0, W, H);
+
+                // 震動偏移
+                let shakeX = 0,
+                    shakeY = 0;
+                if (shakeAmount > 0) {
+                    shakeX = (Math.random() - 0.5) * shakeAmount;
+                    shakeY = (Math.random() - 0.5) * shakeAmount;
+                }
+                ctx.save();
+                ctx.translate(shakeX, shakeY);
+
+                if (gameState === STATE.SELECT) {
+                    drawSelectScreen();
+                    handleSelectInput();
+                } else if (gameState === STATE.FIGHT) {
+                    drawBackground();
+                    if (fighter1 && fighter2) {
+                        // 倒數
+                        if (roundStartCountdown > 0) {
+                            roundStartCountdown -= dt;
+                            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                            ctx.fillRect(0, 0, W, H);
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 60px "Segoe UI","Noto Sans TC",sans-serif';
+                            ctx.textAlign = 'center';
+                            const cd = Math.ceil(roundStartCountdown);
+                            ctx.fillText(cd > 0 ? (cd === 1 ? 'FIGHT!' : String(cd)) : 'FIGHT!', W / 2, H / 2);
+                            ctx.textAlign = 'start';
+                        }
+
+                        handleFighterInput(fighter1, fighter2, true);
+                        handleFighterInput(fighter2, fighter1, false);
+                        fighter1.update(dt, fighter2);
+                        fighter2.update(dt, fighter1);
+                        checkCollisions(fighter1, fighter2);
+                        checkCollisions(fighter2, fighter1);
+                        checkRoundEnd();
+
+                        // 更新粒子
+                        for (const p of particles) p.update(dt);
+                        particles = particles.filter(p => p.alive);
+
+                        // 繪製
+                        fighter1.draw(ctx);
+                        fighter2.draw(ctx);
+                        for (const p of particles) p.draw(ctx);
+                        drawHUD();
+                    }
+                } else if (gameState === STATE.ROUND_END) {
+                    drawBackground();
+                    if (fighter1 && fighter2) {
+                        for (const p of particles) p.update(dt);
+                        particles = particles.filter(p => p.alive);
+                        fighter1.draw(ctx);
+                        fighter2.draw(ctx);
+                        for (const p of particles) p.draw(ctx);
+                        drawHUD();
+                    }
+                    drawRoundEndOverlay();
+                    if (keys['enter']) {
+                        keys['enter'] = false;
+                        startNextRound();
+                    }
+                } else if (gameState === STATE.MATCH_END) {
+                    drawBackground();
+                    if (fighter1 && fighter2) {
+                        for (const p of particles) p.update(dt);
+                        particles = particles.filter(p => p.alive);
+                        fighter1.draw(ctx);
+                        fighter2.draw(ctx);
+                        for (const p of particles) p.draw(ctx);
+                        drawHUD();
+                    }
+                    drawMatchEndOverlay();
+                    matchEndTimer -= dt;
+                    if (keys['enter'] && matchEndTimer <= 2.5) {
+                        keys['enter'] = false;
+                        resetMatch();
+                    }
+                }
+
+                ctx.restore();
+                updateRoundIndicator();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function handleSelectInput() {
+                // P1 選擇
+                if (keys['a'] && !keys._prevA) {
+                    selectionCursor1 = (selectionCursor1 - 1 + CHARACTERS.length) % CHARACTERS.length;
+                }
+                if (keys['d'] && !keys._prevD) {
+                    selectionCursor1 = (selectionCursor1 + 1) % CHARACTERS.length;
+                }
+                if (keys['w'] && !keys._prevW) {
+                    selectConfirmed1 = true;
+                    p1Selection = selectionCursor1;
+                }
+                // P2 選擇
+                if (keys['arrowleft'] && !keys._prevAL) {
+                    selectionCursor2 = (selectionCursor2 - 1 + CHARACTERS.length) % CHARACTERS.length;
+                }
+                if (keys['arrowright'] && !keys._prevAR) {
+                    selectionCursor2 = (selectionCursor2 + 1) % CHARACTERS.length;
+                }
+                if (keys['arrowup'] && !keys._prevAU) {
+                    selectConfirmed2 = true;
+                    p2Selection = selectionCursor2;
+                }
+                // CPU自動選擇
+                if (isVsCPU && !selectConfirmed2) {
+                    if (!keys._cpuSelected) {
+                        selectionCursor2 = Math.floor(Math.random() * CHARACTERS.length);
+                        p2Selection = selectionCursor2;
+                        selectConfirmed2 = true;
+                        keys._cpuSelected = true;
+                    }
+                }
+                if (!isVsCPU) keys._cpuSelected = false;
+
+                // 開始
+                if (keys['enter'] && selectConfirmed1 && selectConfirmed2) {
+                    keys['enter'] = false;
+                    startGame();
+                }
+
+                // 記錄鍵狀態
+                keys._prevA = keys['a'];
+                keys._prevD = keys['d'];
+                keys._prevW = keys['w'];
+                keys._prevAL = keys['arrowleft'];
+                keys._prevAR = keys['arrowright'];
+                keys._prevAU = keys['arrowup'];
+            }
+
+            function startGame() {
+                gameState = STATE.FIGHT;
+                roundNumber = 1;
+                p1RoundWins = 0;
+                p2RoundWins = 0;
+                roundWinner = null;
+                matchWinner = null;
+                createFighters();
+                resetRound();
+                updateRoundIndicator();
+            }
+
+            function resetMatch() {
+                gameState = STATE.SELECT;
+                p1Selection = -1;
+                p2Selection = -1;
+                selectConfirmed1 = false;
+                selectConfirmed2 = false;
+                selectionCursor1 = 0;
+                selectionCursor2 = 4;
+                roundNumber = 1;
+                p1RoundWins = 0;
+                p2RoundWins = 0;
+                roundWinner = null;
+                matchWinner = null;
+                fighter1 = null;
+                fighter2 = null;
+                particles = [];
+                globalSlowMo = 0;
+                shakeAmount = 0;
+                keys._cpuSelected = false;
+                updateRoundIndicator();
+                document.getElementById('p1r1').className = 'round-dot';
+                document.getElementById('p1r2').className = 'round-dot';
+                document.getElementById('p2r1').className = 'round-dot';
+                document.getElementById('p2r2').className = 'round-dot';
+            }
+
+            // --- 模式切換 ---
+            const modeToggle = document.getElementById('modeToggle');
+            modeToggle.addEventListener('click', () => {
+                if (gameState === STATE.SELECT) {
+                    isVsCPU = !isVsCPU;
+                    modeToggle.textContent = isVsCPU ? '🆚 單人 vs 電腦' : '🆚 雙人對戰模式';
+                    selectConfirmed2 = false;
+                    p2Selection = -1;
+                    keys._cpuSelected = false;
+                    if (isVsCPU) {
+                        selectionCursor2 = Math.floor(Math.random() * CHARACTERS.length);
+                    }
+                }
+            });
+
+            // --- 初始化 ---
+            updateRoundIndicator();
+            if (isVsCPU) {
+                selectionCursor2 = Math.floor(Math.random() * CHARACTERS.length);
+            }
+            requestAnimationFrame(gameLoop);
+
+            // --- 響應式Canvas點擊處理 ---
+            canvas.addEventListener('click', (e) => {
+                if (gameState === STATE.SELECT && isVsCPU && !selectConfirmed2) {
+                    selectionCursor2 = Math.floor(Math.random() * CHARACTERS.length);
+                    p2Selection = selectionCursor2;
+                    selectConfirmed2 = true;
+                    keys._cpuSelected = true;
+                }
+            });
+
+            console.log('⚔ 2D格鬥遊戲已就緒！');
+            console.log('P1: WASD移動 | J攻擊 | K技能 | L必殺技');
+            console.log('P2: ↑↓←→移動 | 1攻擊 | 2技能 | 3必殺技');
+            console.log('模式: ' + (isVsCPU ? '單人vs電腦' : '雙人對戰'));
+            console.log('角色: ' + CHARACTERS.map(c => c.name).join(' | '));
+            console.log('規則: 1v1 三戰兩勝');
+        })();
     </script>
 </body>
 </html>
